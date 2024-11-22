@@ -1,5 +1,6 @@
 import 'dart:ffi' as ffi;
-import 'dart:math';
+import 'dart:math' as math;
+//import 'dart:nativewrappers/_internal/vm/lib/core_patch.dart' as wrappers;
 import 'package:flutter/material.dart';
 import 'dart:async';
 
@@ -47,9 +48,9 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
-  int dec_hour = 0;
-  int dec_minute = 0;
-  int dec_second = 0;
+  String dec_hour = "";
+  String dec_minute = "";
+  String dec_second = "";
   void _incrementCounter() {
     setState(() {
       _counter++;
@@ -60,14 +61,24 @@ class _MyHomePageState extends State<MyHomePage> {
     final now = DateTime.now();
     final today = new DateTime(now.year, now.month, now.day);
     final difference = now.difference(today);
+     
+    final milliseconds = difference.inMilliseconds/864;
     // 86 400 000 milliseconds per day
+    
+    var second_str= (milliseconds%100).floor().toString();
+    var minute_str= ((milliseconds/100)%100).floor().toString();
     setState((){
-      dec_hour = (difference.inSeconds/ 8640).toInt();
-      dec_minute = (difference.inSeconds/864).toInt()%100;
-      dec_second = (difference.inMilliseconds/8640).toInt()%100;
+      dec_second = AlwaysTwoNumberString(second_str);
+      dec_minute = AlwaysTwoNumberString(minute_str);
+      dec_hour = ((milliseconds/10000)%10).floor().toString();
     });
   }
-
+  
+  String AlwaysTwoNumberString(String str)
+  {
+    if(str.length == 1) return "0$str";
+    return str;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -101,7 +112,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    timer = Timer.periodic(Duration(seconds: 1), (Timer t) => _updateClock());
+    timer = Timer.periodic(Duration(milliseconds: 864), (Timer t) => _updateClock());
   }
 
   @override
@@ -126,7 +137,7 @@ class _DecClockWidget extends State<DecClockWidget> {
   @override
   void initState() {
     super.initState();
-    timer = Timer.periodic(Duration(milliseconds: 33), (Timer t) => _updateClock());
+    timer = Timer.periodic(Duration(milliseconds: 864), (Timer t) => _updateClock());
   }
   @override
   void dispose() {
@@ -155,8 +166,8 @@ class _DecClockWidget extends State<DecClockWidget> {
     setState((){
       timeOfDay = now.difference(today);
       dec_hour = (timeOfDay.inSeconds/ 8640).toInt();
-      dec_minute = (timeOfDay.inSeconds/864).toInt()%100;
-      dec_second = (timeOfDay.inMilliseconds/8640).toInt()%100;
+      dec_minute = (timeOfDay.inSeconds/86.4).toInt()%100;
+      dec_second = (timeOfDay.inMilliseconds/864).toInt()%100;
     });
   }
 }
@@ -168,18 +179,18 @@ class DecClock extends CustomPainter {
 
   double percentToRad(double val)
   {
-    return pi*2/(100/val);
+    return math.pi*2/(100/val);
   }
 
-  void drawHourLine(Canvas canvas,Offset centerOffset,double radian)
+  void drawHourLine(Canvas canvas,Offset centerOffset,double radian,Paint paint,int inner)
   {
-    final inner = 180;
+  //  final inner = 180;
     final outer = 200;
 
-    var innerOffset = Offset(centerOffset.dx+sin(radian)*inner, centerOffset.dy-cos(radian)*inner);
-    var outerOffset = Offset(centerOffset.dx+sin(radian)*outer, centerOffset.dy-cos(radian)*outer);
+    var innerOffset = Offset(centerOffset.dx+math.sin(radian)*inner, centerOffset.dy-math.cos(radian)*inner);
+    var outerOffset = Offset(centerOffset.dx+math.sin(radian)*outer, centerOffset.dy-math.cos(radian)*outer);
 
-    var paint = Paint()..color = Color.fromARGB(255, 37, 22, 21) ..strokeWidth = 4;
+   // var p = Paint()..color = Color.fromARGB(255, 37, 22, 21) ..strokeWidth = 4;
     canvas.drawLine(innerOffset,outerOffset,paint);
   }
   @override
@@ -192,37 +203,38 @@ class DecClock extends CustomPainter {
     var center = size / 2;
     var centerOffset = Offset(center.width, center.height);
     
-    var milliSeconds = percentToRad((timeOfDay.inMicroseconds/86400)%100);
-    var seconds = percentToRad((timeOfDay.inMilliseconds/8640)%100);
-    var minute = percentToRad((timeOfDay.inSeconds/864)%100);
+    final milliseconds = timeOfDay.inMilliseconds/864;
+    var rad_milliSeconds = percentToRad(((milliseconds).floor()%100));
+    var seconds = percentToRad((timeOfDay.inMilliseconds/86400)%100);
+    var minute = percentToRad((timeOfDay.inSeconds/8640)%100);
     var hour = percentToRad((timeOfDay.inHours/ 24*100));
    // percentToRad((timeOfDay.inHours/ 24*10));
 
-    var paint = Paint()..color = Color.fromARGB(255, 129, 70, 65);
+    var paint = Paint()..color = Color.fromARGB(255, 85, 56, 53);
     var minutesPaint = Paint()..color = Color.fromARGB(255, 37, 22, 21) ..strokeWidth = 4;
-    var hourPaint = Paint()..color = Color.fromARGB(255, 82, 22, 20) ..strokeWidth = 6;
+ //   var hourPaint = Paint()..color = Color.fromARGB(255, 82, 22, 20) ..strokeWidth = 6;
     var dayPaint = Paint()..color = Color.fromARGB(255, 2, 63, 7) ..strokeWidth = 10;
 
-    var secondsPointerOffset = Offset(center.width+sin(milliSeconds)*milliSize, center.height-cos(milliSeconds)*milliSize);
-    var minutesPointerOffset = Offset(center.width+sin(seconds)*secSize, center.height-cos(seconds)*secSize);
-    var hoursPointerOffset = Offset(center.width+sin(minute)*minSize, center.height-cos(minute)*minSize);
-    var dayPointerOffset = Offset(center.width+sin(hour)*hourSize, center.height-cos(hour)*hourSize);
+    var secondsPointerOffset = Offset(center.width+math.sin(rad_milliSeconds)*milliSize, center.height-math.cos(rad_milliSeconds)*milliSize);
+    var minutesPointerOffset = Offset(center.width+math.sin(seconds)*secSize, center.height-math.cos(seconds)*secSize);
+ //   var hoursPointerOffset = Offset(center.width+math.sin(minute)*minSize, center.height-math.cos(minute)*minSize);
+    var dayPointerOffset = Offset(center.width+math.sin(hour)*hourSize, center.height-math.cos(hour)*hourSize);
 
     canvas.drawLine(centerOffset,secondsPointerOffset,paint);
     canvas.drawLine(centerOffset,minutesPointerOffset,minutesPaint);
-    canvas.drawLine(centerOffset,hoursPointerOffset,hourPaint);
+//    canvas.drawLine(centerOffset,hoursPointerOffset,hourPaint);
     canvas.drawLine(centerOffset,dayPointerOffset,dayPaint);
+    
 
-    drawHourLine(canvas,centerOffset,0);
-    drawHourLine(canvas,centerOffset,pi*.25);
-    drawHourLine(canvas,centerOffset,pi*.5);
-    drawHourLine(canvas,centerOffset,pi*.75);
-    drawHourLine(canvas,centerOffset,pi);
-    drawHourLine(canvas,centerOffset,pi*1.25);
-    drawHourLine(canvas,centerOffset,pi*1.5);
-    drawHourLine(canvas,centerOffset,pi*1.75);
-
-
+    var mayorLine = Paint()..color = Color.fromARGB(255, 37, 22, 21) ..strokeWidth = 4;
+    var minorLine = Paint()..color = Color.fromARGB(255, 180, 180, 180) ..strokeWidth = 1;
+    for (var i = 1; i <= 10; i++) {
+      for (var j = 1; j <= 10; j++) {
+        drawHourLine(canvas,centerOffset,math.pi*((.2*i)+(j*.02)),minorLine,190);
+      }
+      drawHourLine(canvas,centerOffset,math.pi*.2*i,mayorLine,180);
+    }
+    canvas.drawCircle(centerOffset, 10, minutesPaint);
     /*
     canvas.drawArc(
       Rect.fromCenter(
